@@ -107,6 +107,65 @@
             border-color: #667eea;
         }
 
+        .rhyme-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .rhyme-section label {
+            color: #666;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .rhyme-btn {
+            background: #764ba2;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .rhyme-btn:hover {
+            background: #5c3a7f;
+        }
+
+        #rhymesResults {
+            margin-top: 15px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .rhyme-word {
+            display: inline-block;
+            padding: 6px 12px;
+            margin: 4px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9em;
+        }
+
+        .rhyme-word:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .loading {
+            color: #667eea;
+            font-style: italic;
+        }
+
         .save-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -230,6 +289,18 @@
                 <button class="tag-btn" data-tag="Empowerment">Empowerment</button>
             </div>
 
+            <div class="rhyme-section">
+                <label>Need a rhyme?</label>
+                <input 
+                    type="text" 
+                    id="rhymeInput" 
+                    placeholder="Enter a word to find rhymes..."
+                    style="margin-bottom: 10px;"
+                >
+                <button class="rhyme-btn" id="findRhymes">Find Rhymes</button>
+                <div id="rhymesResults"></div>
+            </div>
+
             <button class="save-btn" id="saveSong">Save Song</button>
         </div>
 
@@ -246,6 +317,9 @@
         const saveSongBtn = document.getElementById('saveSong');
         const songsContainer = document.getElementById('songsContainer');
         const tagButtons = document.querySelectorAll('.tag-btn');
+        const rhymeInput = document.getElementById('rhymeInput');
+        const findRhymesBtn = document.getElementById('findRhymes');
+        const rhymesResults = document.getElementById('rhymesResults');
 
         let selectedTags = [];
 
@@ -265,6 +339,60 @@
                 }
             });
         });
+
+        // RHYME SUGGESTER FUNCTIONALITY
+        findRhymesBtn.addEventListener('click', async () => {
+            const word = rhymeInput.value.trim().toLowerCase();
+
+            if (!word) {
+                alert('Please enter a word to find rhymes!');
+                return;
+            }
+
+            // Show loading message
+            rhymesResults.innerHTML = '<p class="loading">Finding rhymes...</p>';
+
+            try {
+                // Call Datamuse API for rhymes
+                const response = await fetch(`https://api.datamuse.com/words?rel_rhy=${word}&max=30`);
+                const rhymes = await response.json();
+
+                if (rhymes.length === 0) {
+                    rhymesResults.innerHTML = '<p>No rhymes found. Try another word!</p>';
+                    return;
+                }
+
+                // Display rhymes as clickable words
+                rhymesResults.innerHTML = rhymes.map(rhyme => 
+                    `<span class="rhyme-word" onclick="insertRhyme('${rhyme.word}')">${rhyme.word}</span>`
+                ).join('');
+
+            } catch (error) {
+                rhymesResults.innerHTML = '<p style="color: red;">Error finding rhymes. Please try again!</p>';
+                console.error('Error:', error);
+            }
+        });
+
+        // Allow pressing Enter in rhyme input
+        rhymeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                findRhymesBtn.click();
+            }
+        });
+
+        // Insert rhyme word into lyrics textarea at cursor position
+        function insertRhyme(word) {
+            const cursorPos = lyricsTextArea.selectionStart;
+            const textBefore = lyricsTextArea.value.substring(0, cursorPos);
+            const textAfter = lyricsTextArea.value.substring(cursorPos);
+            
+            lyricsTextArea.value = textBefore + word + textAfter;
+            
+            // Move cursor after inserted word
+            lyricsTextArea.focus();
+            lyricsTextArea.selectionStart = cursorPos + word.length;
+            lyricsTextArea.selectionEnd = cursorPos + word.length;
+        }
 
         // Save song function
         saveSongBtn.addEventListener('click', () => {
